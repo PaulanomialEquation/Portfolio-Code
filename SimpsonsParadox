@@ -1,0 +1,50 @@
+library(gridExtra)
+library(gtable)
+library(grid)
+
+admittance <- read.csv("http://www.calvin.edu/~stob/data/Berkeley.csv")
+
+#Proportion based on gender
+bygender <- as.data.frame(matrix(ncol=4, nrow=2))
+colnames(bygender) <-c("Gender", "Admitted", "Total", "Percentage")
+bygender$Gender <- c("Male", "Female")
+
+#Males admitted, total and percentage
+bygender[1,2] <- sum(subset(admittance, Admit=="Admitted" & Gender=="Male", select=c(Gender, Freq))[,2])
+bygender[1,3] <- sum(subset(admittance, Gender=="Male", select=c(Gender, Freq))[,2])
+bygender[1,4] <- round(bygender[1,2]/bygender[1,3] * 100, digits=2)
+
+#Females admitted, total and percentage
+bygender[2,2] <- sum(subset(admittance, Admit=="Admitted" & Gender=="Female", select=c(Gender, Freq))[,2])
+bygender[2,3] <- sum(subset(admittance, Gender=="Female", select=c(Gender, Freq))[,2])
+bygender[2,4] <- round(bygender[2,2]/bygender[2,3] * 100, digits=2)
+
+g <- tableGrob(bygender, rows=NULL)
+g <- gtable_add_grob(g, grobs = rectGrob(gp = gpar(fill = NA,lwd = 2)), t = 1, b = nrow(g), l = 1, r = ncol(g))
+grid.draw(g)
+
+#Proportion based on department and gender
+accepted <- subset(admittance, Admit=="Admitted", select=c(Gender, Dept, Freq))
+not_accepted <- subset(admittance, Admit=="Rejected", select=c(Gender, Dept, Freq))
+
+total <- merge(accepted, not_accepted, by=c("Gender", "Dept"))
+total$Counts <- total[,3]+total[,4]
+total$Admitted_Prop <- round((total[,3]/total[,5]) * 100, digits=2)
+
+total$Freq.y <- NULL
+total <- total[order(total[,2]),] #sort by department
+
+colnames(total) <-c("Gender", "Department", "Admitted","Total", "Percentage")
+total <- total[c(2,1,3,4,5)]
+total[,1] <- c("A","","B","","C","", "D","", "E","","F", "")
+total_ac <- total[1:6,]
+total_df <- total[7:12,]
+
+tt1 <- ttheme_default()
+ac <- tableGrob(total_ac, rows=NULL, theme=tt1)
+ac <- gtable_add_grob(ac, grobs = rectGrob(gp = gpar(fill = NA,lwd = 2)), t = 1, b = nrow(ac), l = 1, r = ncol(ac))
+grid.arrange(ac)
+
+df <- tableGrob(total_df, rows=NULL, theme=tt1)
+df <- gtable_add_grob(df, grobs = rectGrob(gp = gpar(fill = NA,lwd = 2)), t = 1, b = nrow(df), l = 1, r = ncol(df))
+grid.arrange(df)
