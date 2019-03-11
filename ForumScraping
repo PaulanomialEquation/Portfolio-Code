@@ -1,0 +1,82 @@
+#Code for Top 100 Threads on Personality Café’s Forum What’s My Socionics Type?
+
+import requests
+import pandas as pd
+from pandas.api.types import is_numeric_dtype
+from pandas.api.types import is_string_dtype
+import numpy as np
+from bs4 import BeautifulSoup
+from fake_useragent import UserAgent
+ua=UserAgent()
+header={'user-agent': ua.chrome}
+
+replies = []
+views = []
+threads = []
+links = []
+dd = [] #Data for dd tags, used for obtaining date/time of last post
+date_time = []
+dates = []
+times = []
+empty = []
+count = 0 #Used for Replies/Views lists
+
+base_url = 'http://personalitycafe.com/whats-my-socionics-type/'
+pages = list(map(str, range(2,56)))#Number of pages plus two
+url = base_url
+
+for i in pages:
+    data = requests.get(url,headers=header)
+    soup = BeautifulSoup(data.content, 'lxml')
+    url = base_url + 'index' + i + '.html'
+    #print(soup.prettify())
+
+#Number of Replies and Views of Thread
+    for x in soup.find_all('ul',{'class':'threadstats td alt'}):
+        y = x.text.split()
+        count = count + 1 #To keep track of number of lists
+        if (len(y)) == 7:
+            replies.append(y[1])
+            views.append(y[3])
+        else:
+            empty.append(count - 1)
+
+#Name and Link of Thread
+    for x in soup.find_all('a', {'class': 'title'}):
+        links.append(x.get('href'))
+        threads.append(x.text)
+
+#Get Date and Time of Last Post in DD tag
+    for x in soup.find_all('dd'):
+        dd.append(x.text.split(','))
+
+#Find Date and Time in DD tag
+for x in range(len(dd)):
+    if len(dd[x])== 2:
+        date_time.append(dd[x])
+
+#Split Date and Time strings into two lists
+for x in range(len(date_time)):
+    dates.append(date_time[x][0])
+    times.append(date_time[x][1])
+
+#Delete Threads & Links with empty values for views, replies, date and time
+for x in sorted(empty, reverse=True):
+   del threads[x]
+   del links[x]
+
+#Remove comma from numerical string
+for x in range(len(views)):
+    if len(views[x]) >= 4:
+        views[x] = views[x].replace(',','')
+
+for x in range(len(replies)):
+    if len(replies[x]) >= 4:
+        replies[x] = replies[x].replace(',','')
+
+total = pd.DataFrame(np.column_stack([links, threads, views, replies, times, dates]), columns =['link_to_thread','name_of_thread','views','replies','last_post_time','last_post_date'])
+total[['views','replies']] = total[['views','replies']].apply(pd.to_numeric) #Convert strings into numeric value
+total = total.sort_values(by=['views','replies'], ascending=[False, False])
+
+pop_100_threads = total.head(100)
+pop_100_threads.to_csv('popular_100_threads.csv', index=False, header=True)
