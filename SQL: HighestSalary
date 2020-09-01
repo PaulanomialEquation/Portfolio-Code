@@ -1,0 +1,22 @@
+/* Problem: The employees table holds all employees. Every employee has an Id, a salary, and there is also a column for the department name. Write a query to find employees 
+who have the highest salary in each of the departments. Order of employees will: Jim Johnson, Jane Smith, Billy Bob, John Doe. */
+
+/* Schema */
+CREATE TABLE employees
+(Employee_Id int, Employee_Name text, Salary int, Department_Name text);
+
+INSERT INTO employees 
+VALUES
+(124, 'John Doe', 70000, 'Ops'),
+(345, 'Jane Smith', 90000, 'IT'),
+(467, 'Billy Bob', 80000, 'Sales'), 
+(687, 'Robert Packard', 60000, 'Sales'),
+(598, 'Jim Johnson', 90000, 'IT')
+
+/* Query */
+SELECT e.Department_Name, e.Employee_Name, e.Salary FROM (
+SELECT Department_Name, MAX(Salary) AS Salary
+FROM employees
+GROUP BY Department_Name
+  ) AS x INNER JOIN employees AS e ON e.Department_Name = x.Department_Name AND x.Salary = e.Salary
+ORDER BY Salary DESC, split_part(Employee_name, ' ', 2)
