@@ -1,0 +1,48 @@
+/* Problem: The Trips table holds all taxi trips. Each trip has a unique Id, while Client_Id and Driver_Id are both foreign keys to the Users_Id at the Users table. 
+Status is an ENUM type of (‘completed’, ‘cancelled_by_driver’, ‘cancelled_by_client’). The Users table holds all users. Each user has an unique Users_Id, and Role is an 
+ENUM type of (‘client’, ‘driver’, ‘partner’).Write a SQL query to find the cancellation rate of requests made by unbanned users (both client and driver must be unbanned) 
+between Oct 1, 2013 and Oct 3, 2013. The cancellation rate is computed by dividing the number of canceled (by client or driver) requests made by unbanned users by the total 
+number of requests made by unbanned users. */
+
+/* Schema */
+CREATE TYPE role_type AS ENUM('client', 'driver', 'partner');
+
+CREATE TABLE Users
+(Users_Id int UNIQUE, Banned text, Role role_type, PRIMARY KEY (Users_Id));
+
+INSERT INTO Users
+VALUES
+(1, 'No', 'client'),
+(2, 'Yes', 'client'),
+(3, 'No', 'client'),
+(4, 'No', 'client'),
+(10, 'No', 'driver'),
+(11, 'No', 'driver'),
+(12, 'No', 'driver'),
+(13, 'No', 'driver');
+
+CREATE TYPE status_type AS ENUM('completed', 'cancelled_by_driver','cancelled_by_client');
+
+CREATE TABLE Trips
+(Id int UNIQUE, Client_Id int REFERENCES Users (Users_Id), Driver_Id int REFERENCES Users (Users_Id), City_Id int, Status status_type, Request_at date);
+
+INSERT INTO Trips
+VALUES
+(1, 1, 10,1,'completed','2013-10-01'),
+(2, 2, 11, 1, 'cancelled_by_driver', '2013-10-01'),
+(3, 3, 12,6, 'completed', '2013-10-01'),
+(4, 4, 13, 6, 'cancelled_by_client', '2013-10-01'),
+(5, 1, 10, 1, 'completed', '2013-10-02'),
+(6, 2, 11, 6, 'completed', '2013-10-02'),
+(7, 3, 12, 6, 'completed', '2013-10-02'),
+(8, 2, 12, 12, 'completed','2013-10-03'),
+(9,3,10,12,'completed','2013-10-03'),
+(10,4,13,12,'cancelled_by_driver','2013-10-03');
+
+/* Query */
+SELECT Request_at as Day, CAST(SUM(CASE WHEN Status <> 'completed' THEN 1.0 ELSE 0.0 END)/COUNT(*) as decimal(10,2)) as "Cancellation Rate" 
+FROM Trips T JOIN Users Rider on T.Client_Id = Rider.Users_id 
+JOIN Users Driver on T.Driver_Id = Driver.Users_Id
+WHERE T.Request_at BETWEEN '2013-10-01' AND '2013-10-03'
+AND Rider.Banned = 'No' AND Driver.Banned = 'No'
+GROUP BY Request_at
